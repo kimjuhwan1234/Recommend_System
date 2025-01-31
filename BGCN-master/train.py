@@ -10,7 +10,7 @@ import os
 
 def train(model, epoch, loader, optim, device, CONFIG, loss_func):
     log_interval = CONFIG['log_interval']
-    model.train()
+    model.data()
     start = time()
     for i, data in enumerate(loader):
         users_b, bundles = data
