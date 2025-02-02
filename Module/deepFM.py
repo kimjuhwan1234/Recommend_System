@@ -5,6 +5,7 @@ from deepctr_torch.layers import FM, DNN
 from deepctr_torch.inputs import combined_dnn_input
 from deepctr_torch.models.basemodel import BaseModel
 
+
 class DeepFM(BaseModel):
     """Instantiates the DeepFM Network architecture.
 

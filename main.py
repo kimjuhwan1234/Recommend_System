@@ -8,8 +8,8 @@ from deepctr_torch.inputs import SparseFeat
 
 warnings.filterwarnings("ignore")
 
-if __name__ == "__main__":
-    file_path = "Database/train_val_test.pkl"
+
+def load_data(file_path):
     with open(file_path, "rb") as f:
         loaded_data = pickle.load(f)
 
@@ -22,13 +22,13 @@ if __name__ == "__main__":
 
     print("\nPreprocessing file: import complete.")
 
-    # 범주형(카테고리형) 피처 리스트
-    sparse_features = ['userID_x', 'articleID', 'userRegion_x', 'userCountry_x',
-                       'Format', 'Language', 'userID_y', 'userCountry_y', 'userRegion_y']
+    return x_train, x_val, x_test, y_train, y_val, y_test
 
+
+def import_model(features):
     # 각 범주형 피처의 vocabulary_size를 적절히 설정 (여기선 대략 5000으로 가정)
     # embedding_dim은 8로 설정 (조절 가능)
-    sparse_feature_columns = [SparseFeat(feat, vocabulary_size=5000, embedding_dim=8) for feat in sparse_features]
+    sparse_feature_columns = [SparseFeat(feat, vocabulary_size=5000, embedding_dim=8) for feat in features]
 
     # FM과 DNN에 같은 피처 사용
     linear_feature_columns = sparse_feature_columns
@@ -38,11 +38,22 @@ if __name__ == "__main__":
     model = DeepFM(linear_feature_columns=linear_feature_columns,
                    dnn_feature_columns=dnn_feature_columns, device='cuda:0')
 
-    config['model'] = model
+    return model
 
+
+def main():
+    features = ['userID_x', 'articleID', 'userRegion_x', 'userCountry_x',
+                'Format', 'Language', 'userID_y', 'userCountry_y', 'userRegion_y']
+    file_path = "Database/train_val_test.pkl"
+
+    config['model'] = import_model(features)
+    x_train, x_val, x_test, y_train, y_val, y_test = load_data(file_path)
     dataloaders = get_dataloder(config, x_train, x_val, x_test, y_train, y_val, y_test)
-
     trainer = Trainer(config, dataloaders)
     trainer.run_model()
     trainer.check_validation()
     trainer.evaluate_testset()
+
+
+if __name__ == "__main__":
+    main()

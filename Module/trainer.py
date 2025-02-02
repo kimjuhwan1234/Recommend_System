@@ -1,11 +1,9 @@
 import sys
 import time
-import torch
-import numpy as np
 import pandas as pd
-from torch.optim import Adam
+from utils.plot import *
 from utils.metrics import *
-from utils.plot import plot_hist
+from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
