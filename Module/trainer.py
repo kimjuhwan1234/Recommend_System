@@ -151,7 +151,7 @@ class Trainer:
 
         return model, loss_history, accuracy_history
 
-    def run_model(self):
+    def fit(self):
         print('\nTraining model...')
 
         opt = Adam(self.model.parameters(), lr=self.lr)
@@ -167,7 +167,7 @@ class Trainer:
 
         print('\nModel: train complete.')
 
-    def check_validation(self):
+    def evaluate(self):
         print('\nSaving loss and metric...')
 
         loss_hist_numpy = self.loss_hist.map(
@@ -183,7 +183,7 @@ class Trainer:
 
         print('Loss and metrics: save complete.')
 
-    def evaluate_testset(self):
+    def predict(self):
         print('\nSaving test set results...')
         self.pred = pd.DataFrame(columns=['Probability', 'Predictions', 'Ground Truths'])
         self.model.load_state_dict(torch.load(self.weight_path))

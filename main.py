@@ -50,9 +50,9 @@ def main():
     x_train, x_val, x_test, y_train, y_val, y_test = load_data(file_path)
     dataloaders = get_dataloder(config, x_train, x_val, x_test, y_train, y_val, y_test)
     trainer = Trainer(config, dataloaders)
-    trainer.run_model()
-    trainer.check_validation()
-    trainer.evaluate_testset()
+    trainer.fit()
+    trainer.evaluate()
+    trainer.predict()
 
 
 if __name__ == "__main__":
