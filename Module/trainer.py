@@ -12,11 +12,13 @@ class Trainer:
         self.config = config
         self.dataloaders = dataloaders
         self.model = self.config['model']
+
         self.lr = self.config['train'].lr
         self.epochs = self.config['train'].epochs
         self.device = self.config['train'].device
         self.patience = self.config['train'].patience
         self.batch_size = self.config['train'].batch_size
+
         self.weight_path = f'Weight/DeepFM_CTR.pth'
         self.saving_path = f'File/DeepFM_CTR.csv'
 
@@ -35,7 +37,7 @@ class Trainer:
         total_loss = 0.0
         total_accuracy = 0.0
         len_data = len(dataset_dl)
-        model.to(self.device)  # 모델을 GPU 또는 CPU로 이동
+        model.to(self.device)
 
         model.eval()
         with torch.no_grad():
@@ -63,6 +65,7 @@ class Trainer:
         total_loss = 0.0
         total_accuracy = 0.0
         len_data = len(dataset_dl)
+        model.to(self.device)
 
         model.train()
         i = 0
@@ -88,14 +91,7 @@ class Trainer:
         return total_loss, total_accuracy
 
     def train_and_eval(self, model, params):
-        num_epochs = params['num_epochs']
-        weight_path = params["weight_path"]
         backbone_weight_path = params['backbone_weight_path']
-
-        train_dl = params["train_dl"]
-        val_dl = params["val_dl"]
-
-        patience = params['patience']
         opt = params["optimizer"]
         lr_scheduler = params["lr_scheduler"]
 
@@ -103,9 +99,9 @@ class Trainer:
         accuracy_history = pd.DataFrame(columns=['train', 'val'])
 
         if backbone_weight_path:
-            val_loss1, val_accuracy = self.eval_fn(model, val_dl, True)
+            val_loss1, val_accuracy = self.eval_fn(model, self.dataloaders['val'], True)
             model.load_state_dict(torch.load(backbone_weight_path))
-            val_loss2, val_accuracy = self.eval_fn(model, val_dl, True)
+            val_loss2, val_accuracy = self.eval_fn(model, self.dataloaders['val'], True)
             if val_loss1 > val_loss2:
                 print('backbone')
                 best_loss = val_loss2
@@ -113,42 +109,41 @@ class Trainer:
             else:
                 print('retrain')
                 best_loss = val_loss1
-                best_model_wts = torch.load(weight_path)
+                best_model_wts = torch.load(self.weight_path)
                 model.load_state_dict(best_model_wts)
 
         else:
-            val_loss1, val_accuracy = self.eval_fn(model, val_dl, True)
+            val_loss1, val_accuracy = self.eval_fn(model, self.dataloaders['val'], True)
             best_loss = val_loss1
 
         start_time = time.time()
 
         counter = 0
-        for epoch in range(num_epochs):
+        for epoch in range(self.epochs):
             current_lr = self.get_lr(opt)
-            print(f'\nEpoch {epoch + 1}/{num_epochs}, current lr={current_lr}')
+            print(f'\nEpoch {epoch + 1}/{self.epochs}, current lr={current_lr}')
 
-            train_loss, train_accuracy = self.train_fn(model, train_dl, opt)
+            train_loss, train_accuracy = self.train_fn(model, self.dataloaders['train'], opt)
             loss_history.loc[epoch, 'train'] = train_loss
             accuracy_history.loc[epoch, 'train'] = train_accuracy
 
-            val_loss, val_accuracy = self.eval_fn(model, val_dl, False)
+            val_loss, val_accuracy = self.eval_fn(model, self.dataloaders['val'], False)
             loss_history.loc[epoch, 'val'] = val_loss
             accuracy_history.loc[epoch, 'val'] = val_accuracy
 
             lr_scheduler.step(val_loss)
-            print(' ')
 
             if val_loss < best_loss:
                 counter = 0
                 best_loss = val_loss
-                torch.save(model.state_dict(), weight_path)
+                torch.save(model.state_dict(), self.weight_path)
                 best_model_wts = model.state_dict().copy()
-                print('Saved model weight!')
+                print('\nSaved model weight!')
             else:
                 counter += 1
-                if counter >= patience:
+                if counter >= self.patience:
                     model.load_state_dict(best_model_wts)
-                    print("Early stopped.")
+                    print("\nEarly stopped.")
                     break
 
             print(f'\ntrain loss: {train_loss:.5f}, val loss: {val_loss:.5f}')
@@ -160,17 +155,10 @@ class Trainer:
         print('\nTraining model...')
 
         opt = Adam(self.model.parameters(), lr=self.lr)
-
         lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.2, patience=self.patience)
+
         parameters = {
-            'num_epochs': self.epochs,
-            'weight_path': self.weight_path,
             'backbone_weight_path': None,
-
-            'train_dl': self.dataloaders['train'],
-            'val_dl': self.dataloaders['val'],
-
-            'patience': self.patience,
             'optimizer': opt,
             'lr_scheduler': lr_scheduler,
         }
@@ -207,7 +195,7 @@ class Trainer:
                 X_train = X_train.to(self.device)
                 output = ensure_tensor_array(self.model(X_train))
                 y_pred = ensure_binary_labels(output)
-                gt = ensure_tensor_array(gt)
+                gt = ensure_tensor_array(gt.squeeze())
                 self.pred.loc[len(self.pred)] = [output, y_pred, gt]
 
         F1 = F1Score(self.pred['Predictions'].values, self.pred['Ground Truths'].values)
