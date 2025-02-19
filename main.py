@@ -26,8 +26,8 @@ def load_data(file_path):
 
 
 def import_model(sparse_features, dense_features, vocab_sizes):
-    # 각 범주형 피처의 vocabulary_size를 적절히 설정 (여기선 대략 5000으로 가정)
-    # embedding_dim은 8로 설정 (조절 가능)
+    # 각 범주형 피처의 vocabulary_size를 적절히 설정
+    # embedding_dim은 50으로 설정 (조절 가능)
 
     # Sparse Feature Columns 생성
     sparse_feature_columns = [
@@ -46,6 +46,8 @@ def import_model(sparse_features, dense_features, vocab_sizes):
     # DeepFM 모델 생성
     model = DeepFM(linear_feature_columns=linear_feature_columns,
                    dnn_feature_columns=dnn_feature_columns, device='cuda:0')
+
+    model.load_state_dict(torch.load('Weight/DeepFM_moive.pth'))
 
     return model
 
