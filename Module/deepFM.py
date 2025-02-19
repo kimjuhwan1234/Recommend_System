@@ -42,6 +42,7 @@ class DeepFM(BaseModel):
         self.use_fm = use_fm
         self.use_dnn = len(dnn_feature_columns) > 0 and len(
             dnn_hidden_units) > 0
+        self.class_layer = nn.Linear(1, 10)
         if use_fm:
             self.fm = FM()
 
@@ -61,6 +62,7 @@ class DeepFM(BaseModel):
 
         sparse_embedding_list, dense_value_list = self.input_from_feature_columns(X, self.dnn_feature_columns,
                                                                                   self.embedding_dict)
+
         logit = self.linear_model(X)
 
         if self.use_fm and len(sparse_embedding_list) > 0:
@@ -74,11 +76,11 @@ class DeepFM(BaseModel):
             dnn_logit = self.dnn_linear(dnn_output)
             logit += dnn_logit
 
-        y_pred = self.out(logit)
+        y_pred = F.softmax(self.class_layer(logit), dim=1)
 
         if gt != None:
-            gt = gt.squeeze()
-            loss = F.binary_cross_entropy(y_pred.squeeze(), gt)
+            gt = gt.squeeze().long()
+            loss = F.cross_entropy(self.class_layer(logit), gt)
             return y_pred, loss
 
         return y_pred

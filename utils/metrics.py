@@ -54,23 +54,87 @@ def AdjustedR2(output, gt, n, p):
 
 # 🔹 분류 평가 함수 (Precision, Recall, F1 Score)
 def Precision(output, gt):
-    """정밀도 (Precision) = TP / (TP + FP)"""
-    output, gt = ensure_binary_labels(output), ensure_binary_labels(gt)
-    TP = np.sum((output == 1) & (gt == 1))
-    FP = np.sum((output == 1) & (gt == 0))
-    return TP / (TP + FP) if (TP + FP) > 0 else 0
+    """ 다중 클래스 Precision (벡터 연산 적용) """
+    output, gt = ensure_tensor_array(output), ensure_tensor_array(gt)
+
+    # 예측값이 확률 벡터이면 argmax 적용
+    if output.ndim > 1 and output.shape[1] > 1:
+        output = np.argmax(output, axis=1)
+
+    num_classes = np.unique(gt).size  # ✅ 더 빠르게 클래스 개수 계산
+
+    TP = np.array([(output == k) & (gt == k) for k in range(num_classes)]).sum(axis=1)
+    FP = np.array([(output == k) & (gt != k) for k in range(num_classes)]).sum(axis=1)
+
+    precision = np.divide(TP, (TP + FP), where=(TP + FP) > 0, out=np.zeros_like(TP, dtype=float))
+
+    return np.mean(precision)  # ✅ macro-average 반환 (벡터 연산)
 
 
 def Recall(output, gt):
-    """재현율 (Recall) = TP / (TP + FN)"""
-    output, gt = ensure_binary_labels(output), ensure_binary_labels(gt)
-    TP = np.sum((output == 1) & (gt == 1))
-    FN = np.sum((output == 0) & (gt == 1))
-    return TP / (TP + FN) if (TP + FN) > 0 else 0
+    """ 다중 클래스 Recall (벡터 연산 적용) """
+    output, gt = ensure_tensor_array(output), ensure_tensor_array(gt)
+
+    if output.ndim > 1 and output.shape[1] > 1:
+        output = np.argmax(output, axis=1)
+
+    num_classes = np.unique(gt).size  # ✅ 더 빠르게 클래스 개수 계산
+
+    TP = np.array([(output == k) & (gt == k) for k in range(num_classes)]).sum(axis=1)
+    FN = np.array([(output != k) & (gt == k) for k in range(num_classes)]).sum(axis=1)
+
+    recall = np.divide(TP, (TP + FN), where=(TP + FN) > 0, out=np.zeros_like(TP, dtype=float))
+
+    return np.mean(recall)  # ✅ macro-average 반환 (벡터 연산)
 
 
 def F1Score(output, gt):
-    """F1 Score = 2 * (Precision * Recall) / (Precision + Recall)"""
+    """ 다중 클래스 F1 Score (벡터 연산 적용) """
     precision = Precision(output, gt)
     recall = Recall(output, gt)
-    return 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+    return np.divide(2 * precision * recall, (precision + recall), where=(precision + recall) > 0,
+                     out=np.zeros_like(precision, dtype=float))
+
+
+# def Precision(output, gt):
+#     """ 다중 클래스 Precision 직접 구현 """
+#     output, gt = ensure_tensor_array(output), ensure_tensor_array(gt)
+#     output = np.argmax(output, axis=1)
+#     num_classes = np.max(gt) + 1  # 클래스 개수 확인
+#     if not isinstance(num_classes, int):
+#         num_classes = int(num_classes)
+#     precision_list = []
+#
+#     for k in range(num_classes):
+#         TP = np.sum((output == k) & (gt == k))
+#         FP = np.sum((output == k) & (gt != k))
+#         precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+#         precision_list.append(precision)
+#
+#     return np.mean(precision_list)  # macro-average 반환
+#
+#
+# def Recall(output, gt):
+#     """ 다중 클래스 Recall 직접 구현 """
+#     output, gt = ensure_tensor_array(output), ensure_tensor_array(gt)
+#     output = np.argmax(output, axis=1)
+#     num_classes = np.max(gt) + 1
+#     if not isinstance(num_classes, int):
+#         num_classes = int(num_classes)
+#     recall_list = []
+#
+#     for k in range(num_classes):
+#         TP = np.sum((output == k) & (gt == k))
+#         FN = np.sum((output != k) & (gt == k))
+#         recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+#         recall_list.append(recall)
+#
+#     return np.mean(recall_list)  # macro-average 반환
+#
+#
+# def F1Score(output, gt):
+#     """ 다중 클래스 F1 Score 직접 구현 """
+#     precision = Precision(output, gt)
+#     recall = Recall(output, gt)
+#     return 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0

@@ -19,8 +19,8 @@ class Trainer:
         self.patience = self.config['train'].patience
         self.batch_size = self.config['train'].batch_size
 
-        self.weight_path = f'Weight/DeepFM_CTR.pth'
-        self.saving_path = f'File/DeepFM_CTR.csv'
+        self.weight_path = f'Weight/DeepFM_moive.pth'
+        self.saving_path = f'File/DeepFM_movie.csv'
 
     def plot_bar(self, mode, i, len_data):
         progress = i / len_data
@@ -185,21 +185,20 @@ class Trainer:
 
     def test(self):
         print('\nSaving test set results...')
-        self.pred = pd.DataFrame(columns=['Probability', 'Predictions', 'Ground Truths'])
         self.model.load_state_dict(torch.load(self.weight_path))
         self.model.to(self.device)
         self.model.eval()
-
+        batch_results = []
         with ((torch.no_grad())):
             for X_train, gt in self.dataloaders['test']:
                 X_train = X_train.to(self.device)
                 output = ensure_tensor_array(self.model(X_train))
-                y_pred = ensure_binary_labels(output)
-                gt = ensure_tensor_array(gt.squeeze())
-                self.pred.loc[len(self.pred)] = [output, y_pred, gt]
+                y_pred = np.argmax(output, axis=1).astype(int)
+                gt = ensure_tensor_array(gt.squeeze()).astype(int)
+                user_id = X_train[:, 0].cpu().numpy().astype(int)
+                item_id = X_train[:, 1].cpu().numpy().astype(int)
+                batch_results.extend(zip(user_id, item_id, y_pred, gt))
 
-        F1 = F1Score(self.pred['Predictions'].values, self.pred['Ground Truths'].values)
+        self.pred = pd.DataFrame(batch_results, columns=['user_id', 'movie_id', 'y_pred', 'gt'])
         self.pred.to_csv(self.saving_path)
-
-        print(f'F1: {F1:.4f}')
         print(f"Results in {self.saving_path}: save complete.")

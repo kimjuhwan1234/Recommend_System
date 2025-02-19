@@ -67,7 +67,7 @@ def main():
     )
     parser.add_argument("--gpu_id", type=str, default="0", help="gpu_id")
 
-    parser.add_argument("--using_pretrain", action="store_true")
+    parser.add_argument("--using_pretrain", default=True, action="store_true")
 
     args = parser.parse_args()
 
@@ -79,16 +79,17 @@ def main():
 
     args.data_file = args.data_dir + "train_items.csv"
     item2attribute_file = args.data_dir + args.data_name + "_item2att.json"
-    print(1)
+
     user_seq, max_item, valid_rating_matrix, test_rating_matrix, _ = get_user_seqs(
         args.data_file
     )
+    user_seq = [sublst for sublst in user_seq if len(sublst) != 1]
 
     item2attribute, attribute_size = get_item2attribute_json(item2attribute_file)
 
     args.item_size = max_item + 2
     args.mask_id = max_item + 1
-    args.attribute_size = attribute_size + 1
+    args.attribute_size = int(attribute_size) + 1
 
     # save model args
     args_str = f"{args.model_name}-{args.data_name}"

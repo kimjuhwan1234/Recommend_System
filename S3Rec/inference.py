@@ -19,7 +19,7 @@ from utils import (
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--data_dir", default="../Database/train/", type=str)
+    parser.add_argument("--data_dir", default="../Database/", type=str)
     parser.add_argument("--output_dir", default="output/", type=str)
     parser.add_argument("--data_name", default="Ml", type=str)
     parser.add_argument("--do_eval", action="store_true")
@@ -84,7 +84,7 @@ def main():
 
     args.item_size = max_item + 2
     args.mask_id = max_item + 1
-    args.attribute_size = attribute_size + 1
+    args.attribute_size = int(attribute_size) + 1
 
     # save model args
     args_str = f"{args.model_name}-{args.data_name}"

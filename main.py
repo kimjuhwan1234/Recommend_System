@@ -4,7 +4,7 @@ from Module.deepFM import *
 from Module.dataset import *
 from Module.trainer import *
 from utils.parser import config
-from deepctr_torch.inputs import SparseFeat
+from deepctr_torch.inputs import SparseFeat, DenseFeat
 
 warnings.filterwarnings("ignore")
 
@@ -25,14 +25,23 @@ def load_data(file_path):
     return x_train, x_val, x_test, y_train, y_val, y_test
 
 
-def import_model(features):
+def import_model(sparse_features, dense_features, vocab_sizes):
     # 각 범주형 피처의 vocabulary_size를 적절히 설정 (여기선 대략 5000으로 가정)
     # embedding_dim은 8로 설정 (조절 가능)
-    sparse_feature_columns = [SparseFeat(feat, vocabulary_size=5000, embedding_dim=8) for feat in features]
+
+    # Sparse Feature Columns 생성
+    sparse_feature_columns = [
+        SparseFeat(feat, vocabulary_size=vocab_sizes[feat], embedding_dim=50) for feat
+        in sparse_features
+    ]
+
+    dense_feature_columns = [
+        DenseFeat(feat, dimension=1) for feat in dense_features  # MinMax Scaled 된 값 포함
+    ]
 
     # FM과 DNN에 같은 피처 사용
-    linear_feature_columns = sparse_feature_columns
-    dnn_feature_columns = sparse_feature_columns
+    linear_feature_columns = dense_feature_columns
+    dnn_feature_columns = sparse_feature_columns + dense_feature_columns
 
     # DeepFM 모델 생성
     model = DeepFM(linear_feature_columns=linear_feature_columns,
@@ -42,11 +51,22 @@ def import_model(features):
 
 
 def main():
-    features = ['userID_x', 'articleID', 'userRegion_x', 'userCountry_x',
-                'Format', 'Language', 'userID_y', 'userCountry_y', 'userRegion_y']
-    file_path = "Database/train_val_test.pkl"
+    sparse_features = ['userId',
+                       'movieId',
+                       'genres', ]
 
-    config['model'] = import_model(features)
+    dense_features = [
+        'release_date',
+        'popularity',
+        'runtime',
+        'revenue']
+
+    vocab_sizes = {'userId': 230000, 'movieId': 23000, 'genres': 20}
+    ''''release_date': 13100, 'popularity': 29000,
+                   'runtime': 350, 'revenue': 6600'''
+    file_path = "Database/train_val_test2.pkl"
+
+    config['model'] = import_model(sparse_features, dense_features, vocab_sizes)
     x_train, x_val, x_test, y_train, y_val, y_test = load_data(file_path)
     dataloaders = get_dataloder(config, x_train, x_val, x_test, y_train, y_val, y_test)
     trainer = Trainer(config, dataloaders)

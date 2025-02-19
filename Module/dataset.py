@@ -25,7 +25,7 @@ def get_dataloder(config, x_train, x_val, x_test, y_train, y_val, y_test):
     dataloaders = {
         'train': DataLoader(train_dataset, batch_size=config['train'].batch_size, shuffle=False),
         'val': DataLoader(val_dataset, batch_size=config['train'].batch_size, shuffle=False),
-        'test': DataLoader(test_dataset, batch_size=1, shuffle=False),
+        'test': DataLoader(test_dataset, batch_size=config['train'].batch_size, shuffle=False),
     }
     print('Dataloader: import complete.')
     return dataloaders
