@@ -53,7 +53,7 @@ class Trainer:
                 output, loss = model(data, gt)
 
                 total_loss += loss
-                accuracy = F1Score(output, gt)
+                accuracy = R2(output, gt)
                 total_accuracy += accuracy
 
             total_loss = total_loss / len_data
@@ -82,7 +82,7 @@ class Trainer:
             opt.step()
 
             total_loss += loss
-            accuracy = F1Score(output, gt)
+            accuracy = R2(output, gt)
             total_accuracy += accuracy
 
         total_loss = total_loss / len_data
@@ -147,7 +147,7 @@ class Trainer:
                     break
 
             print(f'\ntrain loss: {train_loss:.5f}, val loss: {val_loss:.5f}')
-            print(f'F1: {val_accuracy:.5f}, time: {(time.time() - start_time) / 60:.2f}')
+            print(f'Metric: {val_accuracy:.5f}, time: {(time.time() - start_time) / 60:.2f}')
 
         return model, loss_history, accuracy_history
 
@@ -179,7 +179,7 @@ class Trainer:
         plot_hist(self.epochs, loss_hist_numpy, 'Loss')
 
         # plot accuracy progress
-        plot_hist(self.epochs, metric_hist_numpy, 'F1')
+        plot_hist(self.epochs, metric_hist_numpy, 'R2')
 
         print('Loss and metrics: save complete.')
 
@@ -193,11 +193,11 @@ class Trainer:
             for X_train, gt in self.dataloaders['test']:
                 X_train = X_train.to(self.device)
                 output = ensure_tensor_array(self.model(X_train))
-                y_pred = np.argmax(output, axis=1).astype(int)
-                gt = ensure_tensor_array(gt.squeeze()).astype(int)
+                # y_pred = np.argmax(output, axis=1).astype(int)
+                gt = ensure_tensor_array(gt.squeeze()).astype(float)
                 user_id = X_train[:, 0].cpu().numpy().astype(int)
                 item_id = X_train[:, 1].cpu().numpy().astype(int)
-                batch_results.extend(zip(user_id, item_id, y_pred, gt))
+                batch_results.extend(zip(user_id, item_id, output, gt))
 
         self.pred = pd.DataFrame(batch_results, columns=['user_id', 'movie_id', 'y_pred', 'gt'])
         self.pred.to_csv(self.saving_path)

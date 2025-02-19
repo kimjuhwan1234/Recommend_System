@@ -47,7 +47,7 @@ def import_model(sparse_features, dense_features, vocab_sizes):
     model = DeepFM(linear_feature_columns=linear_feature_columns,
                    dnn_feature_columns=dnn_feature_columns, device='cuda:0')
 
-    model.load_state_dict(torch.load('Weight/DeepFM_moive.pth'))
+    # model.load_state_dict(torch.load('Weight/DeepFM_moive.pth'))
 
     return model
 
@@ -55,16 +55,17 @@ def import_model(sparse_features, dense_features, vocab_sizes):
 def main():
     sparse_features = ['userId',
                        'movieId',
-                       'genres', ]
+]
 
     dense_features = [
+        'genres',
         'release_date',
         'popularity',
         'runtime',
         'revenue']
 
-    vocab_sizes = {'userId': 230000, 'movieId': 23000, 'genres': 20}
-    ''''release_date': 13100, 'popularity': 29000,
+    vocab_sizes = {'userId': 230000, 'movieId': 23000}
+    '''', 'genres': 20, release_date': 13100, 'popularity': 29000,
                    'runtime': 350, 'revenue': 6600'''
     file_path = "Database/train_val_test2.pkl"
 
